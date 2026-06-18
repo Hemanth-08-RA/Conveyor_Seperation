@@ -626,7 +626,7 @@
     let cosP = Math.cos(camPhi);
     let sinP = Math.sin(camPhi);
     
-    if (viewMode === 'top' || viewMode === 'separator') {
+    if (viewMode === 'topdown' || viewMode === 'separator') {
       cosT = 1; sinT = 0;
       cosP = 0; sinP = 1;
     }
@@ -1670,12 +1670,10 @@
   }
 
   function drawAMR(ctx, viewMode) {
-    if (amr.state === 'idle') return; // off-screen
-    
     ctx.save();
     
-    // Draw LIDAR Safety Scanner Arc on floor (glowing red sector in front of robot)
-    if (viewMode === 'isometric') {
+    // Draw LIDAR Safety Scanner Arc on floor (glowing red sector in front of robot) when active
+    if (viewMode === 'isometric' && amr.state !== 'idle') {
       const scFloorCenter = toScreen(amr.x, amr.y, -20, viewMode);
       ctx.save();
       ctx.shadowColor = 'rgba(239, 68, 68, 0.4)';
@@ -1876,9 +1874,9 @@
       drawHollowBox(ctx, bx, by, bz, boxSizeX, boxSizeY, boxSizeZ, amr.box.items, amr.box.boxNo, viewMode, 0);
     }
     
-    // 5. Flashing amber warning beacon on top of AMR (rich lens flare effect)
+    // 5. Flashing amber warning beacon on top of AMR (rich lens flare effect when active)
     const scBeacon = toScreen(amr.x, amr.y, -8, viewMode);
-    const flash = (Math.floor(Date.now() / 250) % 2 === 0);
+    const flash = (amr.state !== 'idle') && (Math.floor(Date.now() / 250) % 2 === 0);
     
     if (flash) {
       const beaconGrad = ctx.createRadialGradient(scBeacon.x, scBeacon.y, 1, scBeacon.x, scBeacon.y, 9);
