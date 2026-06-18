@@ -1208,11 +1208,11 @@
         
         // At the end of the flat belt (x = 710), transition to the sloped gravity chute
         if (this.x >= 710) {
-          this.state = 'chute';
+          this.state = 'exit_chute';
         }
       }
       
-      else if (this.state === 'chute') {
+      else if (this.state === 'exit_chute') {
         // Slides down the inclined roller chute
         this.x += spd;
         // Slide down inclination (z goes from 10 down to -6 over distance of 72px)
@@ -1261,10 +1261,10 @@
           const effVal = stats.divertAttempt > 0 ? Math.round((stats.divertSuccess / stats.divertAttempt) * 100) : 100;
           document.getElementById('stats-efficiency').textContent = `${effVal}%`;
           
-          addLog(`Item ID #${this.id} deposited into Box #${targetBox.boxNo}. Count: ${targetBox.items.length}/4.`, "info");
+          addLog(`Item ID #${this.id} deposited into Box #${targetBox.boxNo}. Count: ${targetBox.items.length}/2.`, "info");
           
           // Trigger Box pickup by AMR if full
-          if (targetBox.items.length >= 4 && targetBox.state === 'filling') {
+          if (targetBox.items.length >= 2 && targetBox.state === 'filling') {
             targetBox.state = 'full';
             amrQueue.push(targetBox.lane);
             playSound('ship');
