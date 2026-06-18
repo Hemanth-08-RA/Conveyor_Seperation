@@ -53,6 +53,11 @@ We have upgraded the simulation coordinates and animations to bring physical rea
 * **Issue**: When the simulation was scaled to high speed multipliers (e.g. 2x, 3x, 4x) or when the frame rate fluctuated, the step size `spd` exceeded the hardcoded `2px` margins in the state transitions. This caused the AMR to overshoot the target coordinates, leading to an infinite back-and-forth jittering oscillation (e.g., oscillating around `laneY` or `slot.x`), preventing it from ever docking, picking up, or depositing boxes.
 * **Resolution**: Replaced the hardcoded boundaries with dynamic step-based boundaries (`spd` thresholds) and added coordinate snapping. Once the AMR is within the step distance of a target coord (e.g., `x = 850`, `y = targetY`, `y = aisleY`, or `x = slot.x`), it snaps precisely to the target values before transitioning to the next state, preventing any possibility of numerical overshoot or stuck states.
 
+### 4. Bug Fix: Conveyor Chute Loop and Box Filling Failure
+* **Issue**: Items reaching the end of the branch conveyor belts did not deposit into the cardboard boxes. This was caused by a state name conflict in `Item.update`: both the spawner entry chute and the branch exit chute used the state name `'chute'`. When items reached the end of the branch belt and set their state to `'chute'`, the engine evaluated the entry spawner conditional block first, which instantly warped items back to `x = 200` on the main belt, causing them to loop indefinitely on the conveyors and never fill the boxes.
+* **Resolution**: Renamed the exit chute state to `'exit_chute'` to decouple it from the entry spawner chute. The items now correctly slide down the sloped gravity rollers and fall into the boxes.
+* **Box Capacity Reduction**: As requested, the box capacity has been reduced from `4` items to `2` items. This ensures boxes fill up much quicker, triggering the AMR forklift pick-and-place operation more frequently.
+
 ---
 
 ## Realistic Objects & Physics Diverter Upgrades
