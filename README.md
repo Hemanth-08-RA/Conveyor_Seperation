@@ -6,6 +6,14 @@ An interactive, premium HTML5 canvas simulation and HMI dashboard representing a
 
 ---
 
+## Project Demonstration Video
+
+<video src="demo_video.mp4" width="100%" controls poster="uno_q_rpc_diagram_1781812988894.png">
+  Your browser does not support the video tag.
+</video>
+
+---
+
 ## Key Features
 
 ### 1. 3D Realistic Warehouse Scenery
