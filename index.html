@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factory I/O - Separating Station HMI</title>
+  <!-- Google Fonts for High-Tech / Industrial Aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top high-tech status bar -->
+    <header class="hmi-header">
+      <div class="header-left">
+        <div class="logo-icon"></div>
+        <h1>SEPARATING STATION <span class="sub-title">// WAREHOUSE SIMULATOR</span></h1>
+      </div>
+      <div class="header-right">
+        <div class="status-indicator">
+          <span class="status-dot pulse green" id="system-status-dot"></span>
+          <span class="status-text" id="system-status-text">SYSTEM READY</span>
+        </div>
+        <div class="runtime-display">
+          <span class="label">RUN TIME:</span>
+          <span class="value" id="runtime-clock">00:00:00.0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      <!-- Left sidebar: SCADA Stats Panel -->
+      <aside class="sidebar-panel">
+        <div class="panel-section">
+          <h2>SYSTEM MONITORING</h2>
+          
+          <div class="stats-grid">
+            <div class="stat-card cyan">
+              <span class="stat-label">GREEN BASES</span>
+              <span class="stat-value" id="stats-green">0000</span>
+              <span class="stat-sub">Sorted & Boxed</span>
+            </div>
+            <div class="stat-card purple">
+              <span class="stat-label">BLUE LIDS</span>
+              <span class="stat-value" id="stats-blue">0000</span>
+              <span class="stat-sub">Sorted & Boxed</span>
+            </div>
+            <div class="stat-card green">
+              <span class="stat-label">TOTAL ITEMS</span>
+              <span class="stat-value" id="stats-total">0000</span>
+              <span class="stat-sub">Throughput</span>
+            </div>
+            <div class="stat-card gold">
+              <span class="stat-label">EFFICIENCY</span>
+              <span class="stat-value" id="stats-efficiency">100%</span>
+              <span class="stat-sub">Diverter Success</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>STATION CONTROLS</h2>
+          <!-- Control Panel inspired by the Factory I/O cabinet in the screenshot -->
+          <div class="physical-cabinet">
+            <div class="cabinet-door">
+              <div class="button-row">
+                <button class="cabinet-btn start-btn" id="cab-start" title="Start System">
+                  <div class="btn-inner">START</div>
+                </button>
+                <button class="cabinet-btn stop-btn" id="cab-stop" title="Stop System">
+                  <div class="btn-inner">STOP</div>
+                </button>
+              </div>
+              <div class="button-row">
+                <button class="cabinet-btn reset-btn" id="cab-reset" title="Reset Statistics & Simulation">
+                  <div class="btn-inner">RESET</div>
+                </button>
+                <button class="cabinet-btn estop-btn" id="cab-estop" title="Emergency Stop">
+                  <div class="btn-inner">E-STOP</div>
+                </button>
+              </div>
+              <div class="cabinet-indicators">
+                <div class="indicator-lamp green-lamp on" id="lamp-run"><span>RUN</span></div>
+                <div class="indicator-lamp yellow-lamp" id="lamp-idle"><span>IDLE</span></div>
+                <div class="indicator-lamp red-lamp" id="lamp-alarm"><span>ALARM</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2>SIMULATION CONFIG</h2>
+          <div class="config-controls">
+            <div class="slider-group">
+              <label for="cfg-spawn-rate">Spawn Interval: <span id="val-spawn-rate">2.5s</span></label>
+              <input type="range" id="cfg-spawn-rate" min="1.0" max="6.0" step="0.5" value="2.5">
+            </div>
+            
+            <div class="slider-group">
+              <label for="cfg-belt-speed">Conveyor Speed: <span id="val-belt-speed">2.0 m/s</span></label>
+              <input type="range" id="cfg-belt-speed" min="1.0" max="4.0" step="0.2" value="2.0">
+            </div>
+
+            <div class="slider-group">
+              <label for="cfg-item-ratio">Green Base Ratio: <span id="val-item-ratio">50%</span></label>
+              <input type="range" id="cfg-item-ratio" min="10" max="90" step="10" value="50">
+            </div>
+
+            <div class="manual-spawners">
+              <button class="manual-spawn-btn spawn-green" id="spawn-green-btn">+ Spawn Green</button>
+              <button class="manual-spawn-btn spawn-blue" id="spawn-blue-btn">+ Spawn Blue</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center content: Video Player screen and Canvas -->
+      <main class="sim-viewport">
+        <div class="video-container">
+          <div class="video-header">
+            <div class="camera-indicator">
+              <span class="rec-dot"></span>
+              <span class="cam-text">LIVE FEED: CAM_01_OVERVIEW</span>
+            </div>
+            <div class="view-switchers">
+              <button class="view-btn active" data-view="isometric">Isometric View</button>
+              <button class="view-btn" data-view="topdown">Top-down View</button>
+              <button class="view-btn" data-view="separator">Diverter Cam</button>
+              <button class="view-btn" data-view="rpc">RPC Data Flow</button>
+            </div>
+          </div>
+
+          <div class="canvas-wrapper">
+            <!-- The simulation is rendered inside this canvas -->
+            <canvas id="simCanvas" width="960" height="480"></canvas>
+            
+            <!-- Laser Scan Overlay when item is scanned -->
+            <div class="laser-scanner-overlay" id="laser-overlay">
+              <div class="scan-line"></div>
+              <div class="scan-text">SCANNING SPECIFICATIONS...</div>
+            </div>
+          </div>
+
+          <!-- Premium Video Player HUD Controls -->
+          <div class="video-controls">
+            <div class="scrubber-timeline">
+              <div class="scrubber-progress" id="sim-scrubber-progress" style="width: 0%"></div>
+              <div class="scrubber-handle" id="sim-scrubber-handle" style="left: 0%"></div>
+            </div>
+            
+            <div class="controls-bar">
+              <div class="controls-left">
+                <!-- Play/Pause Button -->
+                <button class="player-btn" id="play-pause-btn" title="Play / Pause">
+                  <svg id="play-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M8 5v14l11-7z"/>
+                  </svg>
+                  <svg id="pause-icon" viewBox="0 0 24 24" width="20" height="20" style="display:none;">
+                    <path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+                </button>
+                
+                <!-- Step Forward Frame -->
+                <button class="player-btn" id="step-frame-btn" title="Step Frame (when paused)">
+                  <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M6 18l8.5-6L6 6v12zm9-12v12h2V6h-2z"/>
+                  </svg>
+                </button>
+
+                <!-- Speed Selection -->
+                <div class="speed-selector">
+                  <span class="label">SPEED:</span>
+                  <select id="speed-multiplier" class="styled-select">
+                    <option value="0.25">0.25x (Slow)</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1.0" selected>1.0x (Normal)</option>
+                    <option value="2.0">2.0x (Fast)</option>
+                    <option value="4.0">4.0x (Turbo)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="controls-center">
+                <div class="sensor-readout">
+                  <span class="sensor-label">SENSOR 1 (LIDAR):</span>
+                  <span class="sensor-value idle" id="sensor-readout-val">NO OBJECT</span>
+                </div>
+              </div>
+
+              <div class="controls-right">
+                <!-- Toggle HUD Overlays -->
+                <button class="toggle-hud-btn active" id="toggle-hud" title="Toggle HMI Overlay Grid">
+                  HUD DISPLAY
+                </button>
+                <!-- Toggle Event Log -->
+                <button class="toggle-hud-btn" id="toggle-log" title="Toggle Diagnostic Event Log Panel">
+                  EVENT LOG
+                </button>
+                <button class="fullscreen-btn" id="fullscreen-btn" title="Toggle Fullscreen">
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom section: Live event logs -->
+        <section class="log-panel collapsed">
+          <div class="log-header">
+            <h3>DIAGNOSTIC EVENT LOG</h3>
+            <button class="clear-log-btn" id="clear-log">CLEAR CONSOLE</button>
+          </div>
+          <div class="log-terminal" id="log-terminal">
+            <div class="log-entry system"><span class="timestamp">[00:00:00.0]</span> Separating Station HMI initialized. Connecting to virtual PLC...</div>
+            <div class="log-entry success"><span class="timestamp">[00:00:00.1]</span> PLC handshake successful. Emitters activated. Ready.</div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  
+  <script src="sim.js"></script>
+</body>
+</html>
