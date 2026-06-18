@@ -1502,9 +1502,13 @@
       const targetY = amr.targetLane === 'upper' ? 134 : 166;
       
       if (amr.x > 850) {
-        amr.x -= spd;
+        if (amr.x - 850 > spd) {
+          amr.x -= spd;
+        } else {
+          amr.x = 850;
+        }
         amr.angle = Math.PI; // left
-      } else if (Math.abs(amr.y - targetY) > 2) {
+      } else if (Math.abs(amr.y - targetY) > spd) {
         amr.angle = amr.y > targetY ? -Math.PI/2 : Math.PI/2; // up or down
         amr.y += Math.sign(targetY - amr.y) * spd;
       } else {
@@ -1569,34 +1573,34 @@
       const slot = rackSlots[amr.slotIndex];
       const aisleY = 81;
       
-      if (Math.abs(amr.y - aisleY) > 2) {
+      if (Math.abs(amr.y - aisleY) > spd) {
         amr.angle = amr.y > aisleY ? -Math.PI/2 : Math.PI/2; // up or down
         amr.y += Math.sign(aisleY - amr.y) * spd;
-      } else if (amr.x > slot.x) {
-        amr.x -= spd;
-        amr.angle = Math.PI; // left
-      } else if (amr.x < slot.x - 2) {
-        amr.x += spd;
-        amr.angle = 0; // right
       } else {
-        // Arrived in aisle in front of slot. Turn facing rack (upwards)
-        amr.x = slot.x;
-        amr.y = aisleY;
-        amr.angle = -Math.PI/2; // up
+        amr.y = aisleY; // snap y to aisle height
         
-        // Before extending forks, if depositing on upper shelf, we raise the lift mast first to avoid collision
-        if (slot.z > -20) {
-          // Upper shelf (z = 25). Lift forks to z = 30 to clear shelf frame.
-          if (amr.forkZ < 30) {
-            amr.forkZ += spd * 0.4;
-          } else {
-            amr.state = 'extending_at_rack';
-            addLog(`Reached Slot #${amr.slotIndex + 1}. Mast raised. Extending reach forks...`, "info");
-          }
+        if (Math.abs(amr.x - slot.x) > spd) {
+          amr.angle = amr.x > slot.x ? Math.PI : 0; // left or right
+          amr.x += Math.sign(slot.x - amr.x) * spd;
         } else {
-          // Lower shelf (z = -20). Forks are at z = -10 (which clears the shelf). Extend immediately.
-          amr.state = 'extending_at_rack';
-          addLog(`Reached Slot #${amr.slotIndex + 1}. Extending reach forks...`, "info");
+          // Arrived in aisle in front of slot. Turn facing rack (upwards)
+          amr.x = slot.x;
+          amr.angle = -Math.PI/2; // up
+          
+          // Before extending forks, if depositing on upper shelf, we raise the lift mast first to avoid collision
+          if (slot.z > -20) {
+            // Upper shelf (z = 25). Lift forks to z = 30 to clear shelf frame.
+            if (amr.forkZ < 30) {
+              amr.forkZ += spd * 0.4;
+            } else {
+              amr.state = 'extending_at_rack';
+              addLog(`Reached Slot #${amr.slotIndex + 1}. Mast raised. Extending reach forks...`, "info");
+            }
+          } else {
+            // Lower shelf (z = -20). Forks are at z = -10 (which clears the shelf). Extend immediately.
+            amr.state = 'extending_at_rack';
+            addLog(`Reached Slot #${amr.slotIndex + 1}. Extending reach forks...`, "info");
+          }
         }
       }
     }
@@ -1649,13 +1653,25 @@
     else if (amr.state === 'returning') {
       // Path: (slot.x, 81) -> (850, 81) -> (850, 280) -> (880, 280)
       if (amr.x < 850) {
-        amr.x += spd;
+        if (850 - amr.x > spd) {
+          amr.x += spd;
+        } else {
+          amr.x = 850;
+        }
         amr.angle = 0; // right
       } else if (amr.y < 280) {
-        amr.y += spd;
+        if (280 - amr.y > spd) {
+          amr.y += spd;
+        } else {
+          amr.y = 280;
+        }
         amr.angle = Math.PI/2; // down
       } else if (amr.x < 880) {
-        amr.x += spd;
+        if (880 - amr.x > spd) {
+          amr.x += spd;
+        } else {
+          amr.x = 880;
+        }
         amr.angle = 0; // right
       } else {
         // Returned to warehouse exit! Go idle.
