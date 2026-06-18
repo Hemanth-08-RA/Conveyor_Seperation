@@ -23,6 +23,14 @@
   let currentView = 'isometric'; // 'isometric' | 'topdown' | 'separator' | 'rpc'
   let showHUD = true;
   
+  // Dynamic camera Orbit / Zoom parameters
+  let camTheta = 0.6;
+  let camPhi = 0.5;
+  let camZoom = 0.85;
+  let camCenterX = 400;
+  let camCenterY = 150;
+  let camCenterZ = -15;
+  
   // RPC View variables
   let rpcPackets = [];
   let rpcLog = [];
@@ -316,33 +324,31 @@
   // --- Coordinate & Projection Utilities ---
   // Transforms virtual coordinates (x: 0..850, y: 0..300, z: -40..100) to Canvas screen coordinates
   function toScreen(x, y, z = 0, viewMode = currentView) {
-    if (viewMode === 'topdown') {
-      // Scale and fit to horizontal layout
-      const scale = 0.95;
-      const xOffset = 60;
-      const yOffset = 90;
-      return {
-        x: x * scale + xOffset,
-        y: y * scale + yOffset - z * 0.4
-      };
-    } else if (viewMode === 'separator') {
-      // Zoomed in on scanner and diverter (x: 250..600, y: 50..250)
-      const scale = 2.0;
-      const centerX = 430;
-      const centerY = 150;
-      return {
-        x: (x - centerX) * scale + 480,
-        y: (y - centerY) * scale + 240 - z * scale
-      };
-    } else {
-      // Premium Isometric projection
-      // Runs from bottom-left to top-right
-      const originX = 180;
-      const originY = 135;
-      const isoX = originX + x * 0.7 - y * 0.3;
-      const isoY = originY + x * 0.25 + y * 0.5 - z * 0.7;
-      return { x: isoX, y: isoY };
+    if (viewMode === 'rpc') {
+      return { x, y };
     }
+    
+    // Shift relative to camera focus center
+    const dx = x - camCenterX;
+    const dy = y - camCenterY;
+    const dz = z - camCenterZ;
+    
+    // 1. Rotate around Z-axis (horizontal angle camTheta)
+    const cosT = Math.cos(camTheta);
+    const sinT = Math.sin(camTheta);
+    const rx = dx * cosT - dy * sinT;
+    const ry = dx * sinT + dy * cosT;
+    
+    // 2. Rotate around X-axis (vertical angle camPhi)
+    const cosP = Math.cos(camPhi);
+    const sinP = Math.sin(camPhi);
+    const rz = dz * cosP - ry * sinP;
+    
+    // 3. Project to canvas screen space (center at 480, 240)
+    const screenX = 480 + rx * camZoom;
+    const screenY = 240 - rz * camZoom;
+    
+    return { x: screenX, y: screenY };
   }
 
   // Helper to draw isometric bounding box
@@ -2550,7 +2556,32 @@
       viewButtons.forEach(b => b.classList.remove('active'));
       e.target.classList.add('active');
       currentView = e.target.dataset.view;
-      addLog(`Camera view switched to: ${currentView.toUpperCase()}_VIEW.`, "system");
+      
+      // Reset camera presets based on selection
+      if (currentView === 'isometric') {
+        camTheta = 0.6;
+        camPhi = 0.5;
+        camZoom = 0.85;
+        camCenterX = 400;
+        camCenterY = 150;
+        camCenterZ = -15;
+      } else if (currentView === 'topdown') {
+        camTheta = 0.0;
+        camPhi = Math.PI / 2 - 0.01;
+        camZoom = 0.9;
+        camCenterX = 425;
+        camCenterY = 150;
+        camCenterZ = -20;
+      } else if (currentView === 'separator') {
+        camTheta = 0.6;
+        camPhi = 0.45;
+        camZoom = 1.8;
+        camCenterX = 430;
+        camCenterY = 150;
+        camCenterZ = -10;
+      }
+      
+      addLog(`Camera view switched to: ${currentView.toUpperCase()}_VIEW. Drag mouse to rotate, scroll to zoom.`, "system");
     });
   });
   
@@ -2662,6 +2693,41 @@
       document.exitFullscreen();
     }
   });
+
+  // Dynamic Camera Drag-to-Rotate & Scroll-to-Zoom Event Handlers
+  let isDragging = false;
+  let prevMouseX = 0;
+  let prevMouseY = 0;
+  
+  canvas.addEventListener('mousedown', (e) => {
+    if (currentView === 'rpc') return;
+    isDragging = true;
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - prevMouseX;
+    const deltaY = e.clientY - prevMouseY;
+    
+    // Adjust camera angles
+    camTheta -= deltaX * 0.007;
+    camPhi = Math.max(0.05, Math.min(Math.PI / 2 - 0.02, camPhi - deltaY * 0.005));
+    
+    prevMouseX = e.clientX;
+    prevMouseY = e.clientY;
+  });
+  
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+  
+  canvas.addEventListener('wheel', (e) => {
+    if (currentView === 'rpc') return;
+    e.preventDefault();
+    camZoom = Math.max(0.3, Math.min(4.0, camZoom - e.deltaY * 0.001));
+  }, { passive: false });
 
   // Audio Context unlock for Chrome
   window.addEventListener('click', () => {
