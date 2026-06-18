@@ -411,6 +411,523 @@
     if (style.stroke) { ctx.stroke(); }
   }
 
+  // Draw decals on exterior faces of the cardboard boxes (UP arrows, Fragile wine glass, shipping label)
+  function drawFaceDecals(ctx, faceName, fx, fy, fz, sizeX, sizeY, currentSizeZ, isExterior, viewMode) {
+    if (!isExterior || viewMode !== 'isometric') return;
+    
+    ctx.save();
+    
+    if (faceName === 'front' || faceName === 'back') {
+      // Y-face: constant Y = fy. Decals drawn along X and Z
+      const yOffset = (faceName === 'front') ? 0.3 : -0.3;
+      const dy = fy + yOffset;
+      
+      // 1. Shipping Label (white paper background)
+      const labelX1 = fx + 6;
+      const labelX2 = fx + 20;
+      const labelZ1 = fz + 6;
+      const labelZ2 = fz + 18;
+      
+      const p0 = toScreen(labelX1, dy, labelZ1, viewMode);
+      const p1 = toScreen(labelX2, dy, labelZ1, viewMode);
+      const p2 = toScreen(labelX2, dy, labelZ2, viewMode);
+      const p3 = toScreen(labelX1, dy, labelZ2, viewMode);
+      
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Barcode lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let lz = labelZ1 + 3; lz < labelZ2 - 2; lz += 3) {
+        const lineStart = toScreen(labelX1 + 3, dy, lz, viewMode);
+        const lineEnd = toScreen(labelX2 - 3, dy, lz, viewMode);
+        ctx.beginPath();
+        ctx.moveTo(lineStart.x, lineStart.y);
+        ctx.lineTo(lineEnd.x, lineEnd.y);
+        ctx.stroke();
+      }
+      
+      // 2. Handling Decal: UP Arrows (↑ ↑)
+      const arrowX = fx + 25;
+      const arrowZ = fz + 12;
+      ctx.strokeStyle = '#7f1d1d'; // dark red stencil
+      ctx.lineWidth = 1.2;
+      
+      // Left arrow
+      const a1_bottom = toScreen(arrowX, dy, arrowZ - 4, viewMode);
+      const a1_top = toScreen(arrowX, dy, arrowZ + 4, viewMode);
+      ctx.beginPath(); ctx.moveTo(a1_bottom.x, a1_bottom.y); ctx.lineTo(a1_top.x, a1_top.y); ctx.stroke();
+      const aHeadL1 = toScreen(arrowX - 2, dy, arrowZ + 1, viewMode);
+      const aHeadR1 = toScreen(arrowX + 2, dy, arrowZ + 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(aHeadL1.x, aHeadL1.y); ctx.lineTo(a1_top.x, a1_top.y); ctx.lineTo(aHeadR1.x, aHeadR1.y); ctx.stroke();
+      
+      // Right arrow
+      const a2_bottom = toScreen(arrowX + 5, dy, arrowZ - 4, viewMode);
+      const a2_top = toScreen(arrowX + 5, dy, arrowZ + 4, viewMode);
+      ctx.beginPath(); ctx.moveTo(a2_bottom.x, a2_bottom.y); ctx.lineTo(a2_top.x, a2_top.y); ctx.stroke();
+      const aHeadL2 = toScreen(arrowX + 3, dy, arrowZ + 1, viewMode);
+      const aHeadR2 = toScreen(arrowX + 7, dy, arrowZ + 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(aHeadL2.x, aHeadL2.y); ctx.lineTo(a2_top.x, a2_top.y); ctx.lineTo(aHeadR2.x, aHeadR2.y); ctx.stroke();
+      
+      // Bottom line
+      const barStart = toScreen(arrowX - 2, dy, arrowZ - 5, viewMode);
+      const barEnd = toScreen(arrowX + 7, dy, arrowZ - 5, viewMode);
+      ctx.beginPath();
+      ctx.moveTo(barStart.x, barStart.y);
+      ctx.lineTo(barEnd.x, barEnd.y);
+      ctx.stroke();
+      
+      // 3. Handling Decal: Fragile Glass Cup (goblet with a crack)
+      const cupX = fx + 34;
+      const cupZ = fz + 12;
+      ctx.strokeStyle = '#7f1d1d';
+      ctx.lineWidth = 1.0;
+      
+      const cupTopL = toScreen(cupX - 2, dy, cupZ + 4, viewMode);
+      const cupTopR = toScreen(cupX + 2, dy, cupZ + 4, viewMode);
+      const cupBotL = toScreen(cupX - 2, dy, cupZ, viewMode);
+      const cupBotR = toScreen(cupX + 2, dy, cupZ, viewMode);
+      const stemTop = toScreen(cupX, dy, cupZ, viewMode);
+      const stemBot = toScreen(cupX, dy, cupZ - 4, viewMode);
+      const baseL = toScreen(cupX - 2, dy, cupZ - 4, viewMode);
+      const baseR = toScreen(cupX + 2, dy, cupZ - 4, viewMode);
+      
+      ctx.beginPath(); ctx.moveTo(cupTopL.x, cupTopL.y); ctx.lineTo(cupBotL.x, cupBotL.y); ctx.lineTo(cupBotR.x, cupBotR.y); ctx.lineTo(cupTopR.x, cupTopR.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(stemTop.x, stemTop.y); ctx.lineTo(stemBot.x, stemBot.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(baseL.x, baseL.y); ctx.lineTo(baseR.x, baseR.y); ctx.stroke();
+      
+      const crackStart = toScreen(cupX - 1, dy, cupZ + 3, viewMode);
+      const crackMid = toScreen(cupX + 1, dy, cupZ + 1, viewMode);
+      const crackEnd = toScreen(cupX, dy, cupZ - 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(crackStart.x, crackStart.y); ctx.lineTo(crackMid.x, crackMid.y); ctx.lineTo(crackEnd.x, crackEnd.y); ctx.stroke();
+      
+    } else if (faceName === 'left' || faceName === 'right') {
+      // X-face: constant X = fx. Decals drawn along Y and Z
+      const xOffset = (faceName === 'right') ? 0.3 : -0.3;
+      const dx = fx + xOffset;
+      
+      // 1. Shipping Label (white paper)
+      const labelY1 = fy + 6;
+      const labelY2 = fy + 20;
+      const labelZ1 = fz + 6;
+      const labelZ2 = fz + 18;
+      
+      const p0 = toScreen(dx, labelY1, labelZ1, viewMode);
+      const p1 = toScreen(dx, labelY2, labelZ1, viewMode);
+      const p2 = toScreen(dx, labelY2, labelZ2, viewMode);
+      const p3 = toScreen(dx, labelY1, labelZ2, viewMode);
+      
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Barcode lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let lz = labelZ1 + 3; lz < labelZ2 - 2; lz += 3) {
+        const lineStart = toScreen(dx, labelY1 + 3, lz, viewMode);
+        const lineEnd = toScreen(dx, labelY2 - 3, lz, viewMode);
+        ctx.beginPath();
+        ctx.moveTo(lineStart.x, lineStart.y);
+        ctx.lineTo(lineEnd.x, lineEnd.y);
+        ctx.stroke();
+      }
+      
+      // 2. Handling Decal: UP Arrows
+      const arrowY = fy + 25;
+      const arrowZ = fz + 12;
+      ctx.strokeStyle = '#7f1d1d';
+      ctx.lineWidth = 1.2;
+      
+      const a1_bottom = toScreen(dx, arrowY, arrowZ - 4, viewMode);
+      const a1_top = toScreen(dx, arrowY, arrowZ + 4, viewMode);
+      ctx.beginPath(); ctx.moveTo(a1_bottom.x, a1_bottom.y); ctx.lineTo(a1_top.x, a1_top.y); ctx.stroke();
+      const aHeadL1 = toScreen(dx, arrowY - 2, arrowZ + 1, viewMode);
+      const aHeadR1 = toScreen(dx, arrowY + 2, arrowZ + 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(aHeadL1.x, aHeadL1.y); ctx.lineTo(a1_top.x, a1_top.y); ctx.lineTo(aHeadR1.x, aHeadR1.y); ctx.stroke();
+      
+      const a2_bottom = toScreen(dx, arrowY + 5, arrowZ - 4, viewMode);
+      const a2_top = toScreen(dx, arrowY + 5, arrowZ + 4, viewMode);
+      ctx.beginPath(); ctx.moveTo(a2_bottom.x, a2_bottom.y); ctx.lineTo(a2_top.x, a2_top.y); ctx.stroke();
+      const aHeadL2 = toScreen(dx, arrowY + 3, arrowZ + 1, viewMode);
+      const aHeadR2 = toScreen(dx, arrowY + 7, arrowZ + 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(aHeadL2.x, aHeadL2.y); ctx.lineTo(a2_top.x, a2_top.y); ctx.lineTo(aHeadR2.x, aHeadR2.y); ctx.stroke();
+      
+      const barStart = toScreen(dx, arrowY - 2, arrowZ - 5, viewMode);
+      const barEnd = toScreen(dx, arrowY + 7, arrowZ - 5, viewMode);
+      ctx.beginPath(); ctx.moveTo(barStart.x, barStart.y); ctx.lineTo(barEnd.x, barEnd.y); ctx.stroke();
+      
+      // 3. Handling Decal: Fragile Glass Cup
+      const cupY = fy + 34;
+      const cupZ = fz + 12;
+      ctx.strokeStyle = '#7f1d1d';
+      ctx.lineWidth = 1.0;
+      
+      const cupTopL = toScreen(dx, cupY - 2, cupZ + 4, viewMode);
+      const cupTopR = toScreen(dx, cupY + 2, cupZ + 4, viewMode);
+      const cupBotL = toScreen(dx, cupY - 2, cupZ, viewMode);
+      const cupBotR = toScreen(dx, cupY + 2, cupZ, viewMode);
+      const stemTop = toScreen(dx, cupY, cupZ, viewMode);
+      const stemBot = toScreen(dx, cupY, cupZ - 4, viewMode);
+      const baseL = toScreen(dx, cupY - 2, cupZ - 4, viewMode);
+      const baseR = toScreen(dx, cupY + 2, cupZ - 4, viewMode);
+      
+      ctx.beginPath(); ctx.moveTo(cupTopL.x, cupTopL.y); ctx.lineTo(cupBotL.x, cupBotL.y); ctx.lineTo(cupBotR.x, cupBotR.y); ctx.lineTo(cupTopR.x, cupTopR.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(stemTop.x, stemTop.y); ctx.lineTo(stemBot.x, stemBot.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(baseL.x, baseL.y); ctx.lineTo(baseR.x, baseR.y); ctx.stroke();
+      
+      const crackStart = toScreen(dx, cupY - 1, cupZ + 3, viewMode);
+      const crackMid = toScreen(dx, cupY + 1, cupZ + 1, viewMode);
+      const crackEnd = toScreen(dx, cupY, cupZ - 1, viewMode);
+      ctx.beginPath(); ctx.moveTo(crackStart.x, crackStart.y); ctx.lineTo(crackMid.x, crackMid.y); ctx.lineTo(crackEnd.x, crackEnd.y); ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+
+  // Draw a realistic hollow open cardboard box with bottom shadows, cavity walls, decals, and interior items
+  function drawHollowBox(ctx, x, y, z, sizeX, sizeY, sizeZ, itemsList, boxNo, viewMode, joltTimer = 0) {
+    // 1. Compute dynamic height scaling from landing jolt
+    let boxScaleZ = 1.0;
+    if (joltTimer > 0) {
+      boxScaleZ = 1.0 - Math.sin(joltTimer * 1.2) * 0.12 * (joltTimer / 10);
+    }
+    const currentSizeZ = sizeZ * boxScaleZ;
+    
+    // 2. Draw semi-transparent bottom floor shadow in 3D views
+    if (viewMode === 'isometric') {
+      const shadowPts = [
+        toScreen(x - 3, y - 3, z, viewMode),
+        toScreen(x + sizeX + 3, y - 3, z, viewMode),
+        toScreen(x + sizeX + 3, y + sizeY + 3, z, viewMode),
+        toScreen(x - 3, y + sizeY + 3, z, viewMode)
+      ];
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
+      ctx.beginPath();
+      ctx.moveTo(shadowPts[0].x, shadowPts[0].y);
+      ctx.lineTo(shadowPts[1].x, shadowPts[1].y);
+      ctx.lineTo(shadowPts[2].x, shadowPts[2].y);
+      ctx.lineTo(shadowPts[3].x, shadowPts[3].y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    
+    // 3. Compute camera direction components for back-to-front depth sorting
+    let cosT = Math.cos(camTheta);
+    let sinT = Math.sin(camTheta);
+    let cosP = Math.cos(camPhi);
+    let sinP = Math.sin(camPhi);
+    
+    if (viewMode === 'top' || viewMode === 'separator') {
+      cosT = 1; sinT = 0;
+      cosP = 0; sinP = 1;
+    }
+    
+    // Direction vector towards camera
+    const nx = sinT * cosP;
+    const ny = cosT * cosP;
+    const nz = sinP;
+    
+    // 4. Define the 5 box faces
+    const faces = [
+      {
+        name: 'left',
+        center: { x: x, y: y + sizeY / 2, z: z + currentSizeZ / 2 },
+        vertices: [
+          { x: x, y: y, z: z },
+          { x: x, y: y + sizeY, z: z },
+          { x: x, y: y + sizeY, z: z + currentSizeZ },
+          { x: x, y: y, z: z + currentSizeZ }
+        ],
+        isExterior: nx < 0,
+        fill: nx < 0 ? '#b45309' : '#7c2d12',
+        stroke: '#78350f',
+        flap: {
+          vertices: [
+            { x: x, y: y, z: z + currentSizeZ },
+            { x: x, y: y + sizeY, z: z + currentSizeZ },
+            { x: x - 12, y: y + sizeY, z: z + currentSizeZ + 8 },
+            { x: x - 12, y: y, z: z + currentSizeZ + 8 }
+          ],
+          fill: '#b45309'
+        }
+      },
+      {
+        name: 'right',
+        center: { x: x + sizeX, y: y + sizeY / 2, z: z + currentSizeZ / 2 },
+        vertices: [
+          { x: x + sizeX, y: y, z: z },
+          { x: x + sizeX, y: y + sizeY, z: z },
+          { x: x + sizeX, y: y + sizeY, z: z + currentSizeZ },
+          { x: x + sizeX, y: y, z: z + currentSizeZ }
+        ],
+        isExterior: nx > 0,
+        fill: nx > 0 ? '#b45309' : '#7c2d12',
+        stroke: '#78350f',
+        flap: {
+          vertices: [
+            { x: x + sizeX, y: y, z: z + currentSizeZ },
+            { x: x + sizeX, y: y + sizeY, z: z + currentSizeZ },
+            { x: x + sizeX + 12, y: y + sizeY, z: z + currentSizeZ + 8 },
+            { x: x + sizeX + 12, y: y, z: z + currentSizeZ + 8 }
+          ],
+          fill: '#d97706'
+        }
+      },
+      {
+        name: 'back',
+        center: { x: x + sizeX / 2, y: y, z: z + currentSizeZ / 2 },
+        vertices: [
+          { x: x, y: y, z: z },
+          { x: x + sizeX, y: y, z: z },
+          { x: x + sizeX, y: y, z: z + currentSizeZ },
+          { x: x, y: y, z: z + currentSizeZ }
+        ],
+        isExterior: ny < 0,
+        fill: ny < 0 ? '#d97706' : '#7c2d12',
+        stroke: '#78350f',
+        flap: {
+          vertices: [
+            { x: x, y: y, z: z + currentSizeZ },
+            { x: x + sizeX, y: y, z: z + currentSizeZ },
+            { x: x + sizeX, y: y - 12, z: z + currentSizeZ + 8 },
+            { x: x, y: y - 12, z: z + currentSizeZ + 8 }
+          ],
+          fill: '#b45309'
+        }
+      },
+      {
+        name: 'front',
+        center: { x: x + sizeX / 2, y: y + sizeY, z: z + currentSizeZ / 2 },
+        vertices: [
+          { x: x, y: y + sizeY, z: z },
+          { x: x + sizeX, y: y + sizeY, z: z },
+          { x: x + sizeX, y: y + sizeY, z: z + currentSizeZ },
+          { x: x, y: y + sizeY, z: z + currentSizeZ }
+        ],
+        isExterior: ny > 0,
+        fill: ny > 0 ? '#92400e' : '#5c2200',
+        stroke: '#78350f',
+        flap: {
+          vertices: [
+            { x: x, y: y + sizeY, z: z + currentSizeZ },
+            { x: x + sizeX, y: y + sizeY, z: z + currentSizeZ },
+            { x: x + sizeX, y: y + sizeY + 12, z: z + currentSizeZ + 8 },
+            { x: x, y: y + sizeY + 12, z: z + currentSizeZ + 8 }
+          ],
+          fill: '#92400e'
+        }
+      },
+      {
+        name: 'bottom',
+        center: { x: x + sizeX / 2, y: y + sizeY / 2, z: z },
+        vertices: [
+          { x: x, y: y, z: z },
+          { x: x + sizeX, y: y, z: z },
+          { x: x + sizeX, y: y + sizeY, z: z },
+          { x: x, y: y + sizeY, z: z }
+        ],
+        isExterior: nz < 0,
+        fill: '#431407', // dark interior shadow
+        stroke: '#361005',
+        flap: null
+      }
+    ];
+    
+    // 5. Gather elements (faces + interior items) to sort
+    const elements = [];
+    
+    faces.forEach(face => {
+      const depth = face.center.x * nx + face.center.y * ny + face.center.z * nz;
+      elements.push({
+        type: 'face',
+        depth: depth,
+        data: face
+      });
+    });
+    
+    itemsList.forEach((item, index) => {
+      const row = Math.floor(index / 2);
+      const col = index % 2;
+      const itemOffsetX = 10 + col * 20;
+      const itemOffsetY = 10 + row * 20;
+      const itemZ = z + 2;
+      
+      const itemCX = x + itemOffsetX;
+      const itemCY = y + itemOffsetY;
+      const itemCZ = itemZ;
+      
+      const depth = itemCX * nx + itemCY * ny + itemCZ * nz;
+      elements.push({
+        type: 'item',
+        depth: depth,
+        data: {
+          x: itemCX,
+          y: itemCY,
+          z: itemCZ,
+          type: item.type
+        }
+      });
+    });
+    
+    // Sort elements from back to front (ascending depth value)
+    elements.sort((a, b) => a.depth - b.depth);
+    
+    // 6. Draw each element
+    elements.forEach(el => {
+      if (el.type === 'face') {
+        const face = el.data;
+        
+        // Draw open cardboard flap
+        if (face.flap && viewMode === 'isometric') {
+          ctx.save();
+          ctx.fillStyle = face.flap.fill;
+          ctx.strokeStyle = face.stroke;
+          ctx.lineWidth = 1;
+          
+          const fp0 = toScreen(face.flap.vertices[0].x, face.flap.vertices[0].y, face.flap.vertices[0].z, viewMode);
+          const fp1 = toScreen(face.flap.vertices[1].x, face.flap.vertices[1].y, face.flap.vertices[1].z, viewMode);
+          const fp2 = toScreen(face.flap.vertices[2].x, face.flap.vertices[2].y, face.flap.vertices[2].z, viewMode);
+          const fp3 = toScreen(face.flap.vertices[3].x, face.flap.vertices[3].y, face.flap.vertices[3].z, viewMode);
+          
+          ctx.beginPath();
+          ctx.moveTo(fp0.x, fp0.y);
+          ctx.lineTo(fp1.x, fp1.y);
+          ctx.lineTo(fp2.x, fp2.y);
+          ctx.lineTo(fp3.x, fp3.y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // Draw face polygon
+        const pt = face.vertices.map(v => toScreen(v.x, v.y, v.z, viewMode));
+        ctx.save();
+        ctx.fillStyle = face.fill;
+        ctx.strokeStyle = face.stroke;
+        ctx.lineWidth = 1.5;
+        
+        ctx.beginPath();
+        ctx.moveTo(pt[0].x, pt[0].y);
+        ctx.lineTo(pt[1].x, pt[1].y);
+        ctx.lineTo(pt[2].x, pt[2].y);
+        ctx.lineTo(pt[3].x, pt[3].y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        
+        // Draw stencil markings on exterior walls
+        drawFaceDecals(ctx, face.name, x, y, z, sizeX, sizeY, currentSizeZ, face.isExterior, viewMode);
+        
+      } else if (el.type === 'item') {
+        const item = el.data;
+        // Draw the 3D miniature item inside the cavity (scaled 0.8x)
+        drawItem3D(ctx, item.x, item.y, item.z, item.type, 0.8, viewMode, 1.0, null);
+      }
+    });
+    
+    // 7. Draw box number badge on top of the front edge
+    if (boxNo !== null) {
+      const labelSc = toScreen(x + sizeX * 0.5, y + sizeY * 0.8, z + currentSizeZ, viewMode);
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      ctx.fillRect(labelSc.x - 14, labelSc.y - 4, 28, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 5px var(--font-display)';
+      ctx.textAlign = 'center';
+      ctx.fillText(`BOX #${boxNo}`, labelSc.x, labelSc.y + 2);
+      ctx.restore();
+    }
+  }
+
+  // Draw an inclined gravity roller chute at the end of branch conveyor belts
+  function drawInclinedChute(ctx, y1, yCenter, y2, viewMode) {
+    // Start x=710, z=10. End x=782, z=-6. Width spans y1 to y2.
+    
+    // Side Rails (Slate Steel channels)
+    const leftRail = {
+      tS: toScreen(710, y1, 10, viewMode),
+      tE: toScreen(782, y1, -6, viewMode),
+      bS: toScreen(710, y1, 6, viewMode),
+      bE: toScreen(782, y1, -10, viewMode)
+    };
+    
+    const rightRail = {
+      tS: toScreen(710, y2, 10, viewMode),
+      tE: toScreen(782, y2, -6, viewMode),
+      bS: toScreen(710, y2, 6, viewMode),
+      bE: toScreen(782, y2, -10, viewMode)
+    };
+    
+    ctx.save();
+    ctx.fillStyle = '#64748b'; // Slate steel
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    
+    // Left channel plate
+    ctx.beginPath();
+    ctx.moveTo(leftRail.tS.x, leftRail.tS.y);
+    ctx.lineTo(leftRail.tE.x, leftRail.tE.y);
+    ctx.lineTo(leftRail.bE.x, leftRail.bE.y);
+    ctx.lineTo(leftRail.bS.x, leftRail.bS.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Right channel plate
+    ctx.beginPath();
+    ctx.moveTo(rightRail.tS.x, rightRail.tS.y);
+    ctx.lineTo(rightRail.tE.x, rightRail.tE.y);
+    ctx.lineTo(rightRail.bE.x, rightRail.bE.y);
+    ctx.lineTo(rightRail.bS.x, rightRail.bS.y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    
+    // Spun Cylindrical Rollers (placed closer for passive gravity slide action)
+    const rollerSpacing = 12;
+    for (let rx = 716; rx <= 776; rx += rollerSpacing) {
+      const rz = 10 - (rx - 710) * (16 / 72);
+      
+      const rStart = toScreen(rx, y1 + 1, rz, viewMode);
+      const rEnd = toScreen(rx, y2 - 1, rz, viewMode);
+      
+      // Draw base roller cylinder
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(rStart.x, rStart.y);
+      ctx.lineTo(rEnd.x, rEnd.y);
+      ctx.stroke();
+      
+      // Rollers rotation highlight stripe (continuously active to convey gravity kinetic slide)
+      const rotationAngle = (runtime * 0.03 * conveyorSpeed + rx) % (Math.PI * 2);
+      const offset = Math.sin(rotationAngle) * 1.0;
+      
+      const stripeStart = toScreen(rx + offset, y1 + 1, rz + 0.5, viewMode);
+      const stripeEnd = toScreen(rx + offset, y2 - 1, rz + 0.5, viewMode);
+      
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(stripeStart.x, stripeStart.y);
+      ctx.lineTo(stripeEnd.x, stripeEnd.y);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  }
+
   // Unified 3D item rendering helper
   function drawItem3D(ctx, x, y, z, type, sizeScale = 1.0, viewMode = currentView, opacity = 1.0, itemID = null) {
     const sc = toScreen(x, y, z, viewMode);
@@ -689,12 +1206,25 @@
         // Travelling along separated conveyor belt
         this.x += spd;
         
-        // Laser barrier gate before drop
-        if (this.x >= 750) {
+        // At the end of the flat belt (x = 710), transition to the sloped gravity chute
+        if (this.x >= 710) {
+          this.state = 'chute';
+        }
+      }
+      
+      else if (this.state === 'chute') {
+        // Slides down the inclined roller chute
+        this.x += spd;
+        // Slide down inclination (z goes from 10 down to -6 over distance of 72px)
+        this.z = 10 - (this.x - 710) * (16 / 72);
+        
+        // Once reaching the end of the chute, drop into the box
+        if (this.x >= 782) {
+          this.x = 782;
           this.state = 'falling';
-          this.vx = spd * 0.8; // retain some forward velocity
+          this.vx = spd * 0.9; // carry slide velocity forward
           this.vy = 0;
-          this.vz = 0;
+          this.vz = -0.5; // slight initial downward velocity
         }
       }
       
@@ -912,17 +1442,9 @@
     const b = boxes[lane];
     if (b.state === 'idle') return; // no box at dock
     
-    // Box dimensions in virtual coordinates
     const boxSizeX = 40;
     const boxSizeY = 40;
     const boxSizeZ = 30;
-    
-    // Calculate dynamic Z scaling during landing jolt
-    let boxScaleZ = 1.0;
-    if (b.joltTimer > 0) {
-      boxScaleZ = 1.0 - Math.sin(b.joltTimer * 1.2) * 0.12 * (b.joltTimer / 10);
-    }
-    const currentBoxSizeZ = boxSizeZ * boxScaleZ;
     
     let currentX = b.x;
     let currentY = b.y - boxSizeY / 2;
@@ -930,122 +1452,12 @@
     
     if (b.state === 'sliding_in') {
       currentY = (b.y - boxSizeY / 2) - (1.0 - b.progress) * 120;
-      currentZ = b.z + (1.0 - b.progress) * 40; // drop down slightly
+      currentZ = b.z + (1.0 - b.progress) * 40;
     } else if (amr.state === 'lifting' && amr.targetLane === lane) {
       currentZ = amr.forkZ;
     }
     
-    // Styling the cardboard box
-    const cardStyle = {
-      fillTop: '#d97706',      // Golden brown
-      fillFrontLeft: '#b45309', // Darker brown
-      fillFrontRight: '#92400e', // Darkest brown
-      stroke: '#78350f',
-      lineWidth: 1.5
-    };
-    
-    // Draw Box structure with dynamic height Z
-    drawIsoBox(ctx, currentX, currentY, currentZ, boxSizeX, boxSizeY, currentBoxSizeZ, cardStyle);
-    
-    // Draw 3D Open Cardboard Flaps (isometric perspective)
-    if (viewMode === 'isometric') {
-      ctx.save();
-      ctx.fillStyle = '#b45309';
-      ctx.strokeStyle = '#78350f';
-      ctx.lineWidth = 1;
-      
-      const tz = currentZ + currentBoxSizeZ;
-      // Top corners
-      const c0 = toScreen(currentX, currentY, tz, viewMode);
-      const c1 = toScreen(currentX + boxSizeX, currentY, tz, viewMode);
-      const c2 = toScreen(currentX + boxSizeX, currentY + boxSizeY, tz, viewMode);
-      const c3 = toScreen(currentX, currentY + boxSizeY, tz, viewMode);
-      
-      // Flap 1: Front-Left (attached to c0-c3, folds left/outwards)
-      const f1_left = toScreen(currentX - 12, currentY, tz + 8, viewMode);
-      const f1_right = toScreen(currentX - 12, currentY + boxSizeY, tz + 8, viewMode);
-      ctx.beginPath();
-      ctx.moveTo(c0.x, c0.y); ctx.lineTo(c3.x, c3.y); ctx.lineTo(f1_right.x, f1_right.y); ctx.lineTo(f1_left.x, f1_left.y);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      
-      // Flap 2: Front-Right (attached to c3-c2, folds down-right/outwards)
-      const f2_left = toScreen(currentX, currentY + boxSizeY + 12, tz + 8, viewMode);
-      const f2_right = toScreen(currentX + boxSizeX, currentY + boxSizeY + 12, tz + 8, viewMode);
-      ctx.fillStyle = '#92400e'; // darker due to shadowing
-      ctx.beginPath();
-      ctx.moveTo(c3.x, c3.y); ctx.lineTo(c2.x, c2.y); ctx.lineTo(f2_right.x, f2_right.y); ctx.lineTo(f2_left.x, f2_left.y);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      
-      // Flap 3: Back-Right (attached to c2-c1, folds right/outwards)
-      const f3_left = toScreen(currentX + boxSizeX + 12, currentY + boxSizeY, tz + 8, viewMode);
-      const f3_right = toScreen(currentX + boxSizeX + 12, currentY, tz + 8, viewMode);
-      ctx.fillStyle = '#d97706'; // brighter
-      ctx.beginPath();
-      ctx.moveTo(c2.x, c2.y); ctx.lineTo(c1.x, c1.y); ctx.lineTo(f3_right.x, f3_right.y); ctx.lineTo(f3_left.x, f3_left.y);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      
-      // Flap 4: Back-Left (attached to c1-c0, folds up/outwards)
-      const f4_left = toScreen(currentX + boxSizeX, currentY - 12, tz + 8, viewMode);
-      const f4_right = toScreen(currentX, currentY - 12, tz + 8, viewMode);
-      ctx.fillStyle = '#b45309';
-      ctx.beginPath();
-      ctx.moveTo(c1.x, c1.y); ctx.lineTo(c0.x, c0.y); ctx.lineTo(f4_right.x, f4_right.y); ctx.lineTo(f4_left.x, f4_left.y);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      
-      ctx.restore();
-    }
-    
-    // Draw Shipping Label decal on Front-Right Face (X coordinate edge)
-    if (viewMode === 'isometric') {
-      ctx.save();
-      const pLabel0 = toScreen(currentX + 8, currentY + boxSizeY + 0.3, currentZ + 8, viewMode);
-      const pLabel1 = toScreen(currentX + 22, currentY + boxSizeY + 0.3, currentZ + 8, viewMode);
-      const pLabel2 = toScreen(currentX + 22, currentY + boxSizeY + 0.3, currentZ + 20, viewMode);
-      const pLabel3 = toScreen(currentX + 8, currentY + boxSizeY + 0.3, currentZ + 20, viewMode);
-      
-      // White label back
-      ctx.fillStyle = '#f8fafc';
-      ctx.beginPath();
-      ctx.moveTo(pLabel0.x, pLabel0.y); ctx.lineTo(pLabel1.x, pLabel1.y); ctx.lineTo(pLabel2.x, pLabel2.y); ctx.lineTo(pLabel3.x, pLabel3.y);
-      ctx.closePath(); ctx.fill();
-      
-      // Black shipping lines / barcode stripes
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 1;
-      
-      const pLineLeft1 = toScreen(currentX + 11, currentY + boxSizeY + 0.5, currentZ + 16, viewMode);
-      const pLineRight1 = toScreen(currentX + 19, currentY + boxSizeY + 0.5, currentZ + 16, viewMode);
-      ctx.beginPath(); ctx.moveTo(pLineLeft1.x, pLineLeft1.y); ctx.lineTo(pLineRight1.x, pLineRight1.y); ctx.stroke();
-      
-      const pLineLeft2 = toScreen(currentX + 11, currentY + boxSizeY + 0.5, currentZ + 12, viewMode);
-      const pLineRight2 = toScreen(currentX + 19, currentY + boxSizeY + 0.5, currentZ + 12, viewMode);
-      ctx.beginPath(); ctx.moveTo(pLineLeft2.x, pLineLeft2.y); ctx.lineTo(pLineRight2.x, pLineRight2.y); ctx.stroke();
-      ctx.restore();
-    }
-    
-    // Draw Items currently inside the box
-    b.items.forEach((item, index) => {
-      // Arrange items inside the 2x2 grid inside the box
-      const row = Math.floor(index / 2);
-      const col = index % 2;
-      
-      const itemOffsetX = 10 + col * 20;
-      const itemOffsetY = 10 + row * 20;
-      const itemZ = currentZ + 2; // sit on bottom of box
-      
-      drawItem3D(ctx, currentX + itemOffsetX, currentY + itemOffsetY, itemZ, item.type, 0.8, viewMode, 1.0);
-    });
-    
-    // Draw flaps / Box details label with dynamic Z
-    const labelSc = toScreen(currentX + boxSizeX * 0.5, currentY + boxSizeY * 0.8, currentZ + currentBoxSizeZ, viewMode);
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(labelSc.x - 14, labelSc.y - 4, 28, 8);
-    ctx.fillStyle = '#fff';
-    ctx.font = '5px var(--font-display)';
-    ctx.textAlign = 'center';
-    ctx.fillText(`BOX #${b.boxNo}`, labelSc.x, labelSc.y + 2);
-    ctx.restore();
+    drawHollowBox(ctx, currentX, currentY, currentZ, boxSizeX, boxSizeY, boxSizeZ, b.items, b.boxNo, viewMode, b.joltTimer);
   }
 
   // --- AMR Forklift Robot Logic ---
@@ -1458,65 +1870,10 @@
       const boxSizeX = 40;
       const boxSizeY = 40;
       const boxSizeZ = 30;
-      
       const bx = extForkX2 - boxSizeX/2;
       const by = extForkY2 - boxSizeY/2;
       const bz = amr.forkZ;
-      
-      const cardStyle = {
-        fillTop: '#d97706',      // Cardboard box
-        fillFrontLeft: '#b45309',
-        fillFrontRight: '#92400e',
-        stroke: '#78350f',
-        lineWidth: 1.5
-      };
-      
-      drawIsoBox(ctx, bx, by, bz, boxSizeX, boxSizeY, boxSizeZ, cardStyle);
-      
-      // Draw Flaps (Cardboard open top flaps)
-      if (viewMode === 'isometric') {
-        ctx.save();
-        ctx.fillStyle = '#b45309';
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 1;
-        
-        const tz = bz + boxSizeZ;
-        const c0 = toScreen(bx, by, tz, viewMode);
-        const c1 = toScreen(bx + boxSizeX, by, tz, viewMode);
-        const c2 = toScreen(bx + boxSizeX, by + boxSizeY, tz, viewMode);
-        const c3 = toScreen(bx, by + boxSizeY, tz, viewMode);
-        
-        const f1_left = toScreen(bx - 12, by, tz + 8, viewMode);
-        const f1_right = toScreen(bx - 12, by + boxSizeY, tz + 8, viewMode);
-        ctx.beginPath(); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c3.x, c3.y); ctx.lineTo(f1_right.x, f1_right.y); ctx.lineTo(f1_left.x, f1_left.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-        
-        const f2_left = toScreen(bx, by + boxSizeY + 12, tz + 8, viewMode);
-        const f2_right = toScreen(bx + boxSizeX, by + boxSizeY + 12, tz + 8, viewMode);
-        ctx.fillStyle = '#92400e';
-        ctx.beginPath(); ctx.moveTo(c3.x, c3.y); ctx.lineTo(c2.x, c2.y); ctx.lineTo(f2_right.x, f2_right.y); ctx.lineTo(f2_left.x, f2_left.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-        
-        const f3_left = toScreen(bx + boxSizeX + 12, by + boxSizeY, tz + 8, viewMode);
-        const f3_right = toScreen(bx + boxSizeX + 12, by, tz + 8, viewMode);
-        ctx.fillStyle = '#d97706';
-        ctx.beginPath(); ctx.moveTo(c2.x, c2.y); ctx.lineTo(c1.x, c1.y); ctx.lineTo(f3_right.x, f3_right.y); ctx.lineTo(f3_left.x, f3_left.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-        
-        const f4_left = toScreen(bx + boxSizeX, by - 12, tz + 8, viewMode);
-        const f4_right = toScreen(bx, by - 12, tz + 8, viewMode);
-        ctx.fillStyle = '#b45309';
-        ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c0.x, c0.y); ctx.lineTo(f4_right.x, f4_right.y); ctx.lineTo(f4_left.x, f4_left.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-        ctx.restore();
-      }
-      
-      // Draw items inside box
-      amr.box.items.forEach((item, index) => {
-        const row = Math.floor(index / 2);
-        const col = index % 2;
-        const itemOffsetX = 10 + col * 20;
-        const itemOffsetY = 10 + row * 20;
-        const itemZ = bz + 2; // sit inside box
-        
-        drawItem3D(ctx, bx + itemOffsetX, by + itemOffsetY, itemZ, item.type, 0.8, viewMode, 1.0);
-      });
+      drawHollowBox(ctx, bx, by, bz, boxSizeX, boxSizeY, boxSizeZ, amr.box.items, amr.box.boxNo, viewMode, 0);
     }
     
     // 5. Flashing amber warning beacon on top of AMR (rich lens flare effect)
@@ -1698,14 +2055,18 @@
     // Divert transition plate
     drawIsoBox(ctx, 460, 120, 0, 60, 60, 6, { fill: '#cbd5e1', stroke: '#475569' });
     
-    // Upper Branch Belt: x 520..780, y 134, z = 0, width = 24
-    drawIsoBox(ctx, 520, 122, 0, 260, 24, 10, conveyorBeltStyle);
+    // Upper Branch Belt: x 520..710, y 134, z = 0, width = 24
+    drawIsoBox(ctx, 520, 122, 0, 190, 24, 10, conveyorBeltStyle);
     
-    // Lower Branch Belt: x 520..780, y 166, z = 0, width = 24
-    drawIsoBox(ctx, 520, 154, 0, 260, 24, 10, conveyorBeltStyle);
+    // Lower Branch Belt: x 520..710, y 166, z = 0, width = 24
+    drawIsoBox(ctx, 520, 154, 0, 190, 24, 10, conveyorBeltStyle);
     
     // Divider rail between branch belts
-    drawIsoBox(ctx, 580, 146, 0, 200, 8, 12, { fillTop: '#cbd5e1', fillFrontLeft: '#94a3b8', fillFrontRight: '#64748b', stroke: '#475569' });
+    drawIsoBox(ctx, 580, 146, 0, 130, 8, 12, { fillTop: '#cbd5e1', fillFrontLeft: '#94a3b8', fillFrontRight: '#64748b', stroke: '#475569' });
+    
+    // Draw Inclined Gravity Roller Chutes
+    drawInclinedChute(ctx, 122, 134, 146, viewMode); // Upper
+    drawInclinedChute(ctx, 154, 166, 178, viewMode); // Lower
     
     // Slide texture markings for motion indication
     if (isPlaying && !isEStop) {
@@ -1722,7 +2083,7 @@
       }
       
       // Branch belt dots
-      for (let bx = 520 + beltOffset; bx < 780; bx += 20) {
+      for (let bx = 520 + beltOffset; bx < 710; bx += 20) {
         const dotPtUpper = toScreen(bx, 134, 10, viewMode);
         const dotPtLower = toScreen(bx, 166, 10, viewMode);
         ctx.beginPath();
@@ -1757,7 +2118,7 @@
     }
     
     // Branch belt rollers
-    for (let rx = 530; rx < 780; rx += rollerSpacing) {
+    for (let rx = 530; rx < 710; rx += rollerSpacing) {
       const rotationAngle = (runtime * 0.015 * conveyorSpeed + rx) % (Math.PI * 2);
       const offset = Math.sin(rotationAngle) * 1.5;
       
@@ -2159,26 +2520,8 @@
     // Draw Boxes stored on warehouse rack
     rackSlots.forEach(slot => {
       if (slot.box) {
-        const cardStyle = {
-          fillTop: '#d97706',
-          fillFrontLeft: '#b45309',
-          fillFrontRight: '#92400e',
-          stroke: '#78350f',
-          lineWidth: 1.5
-        };
         const boxSize = 40;
-        drawIsoBox(ctx, slot.x - boxSize/2, slot.y - boxSize/2, slot.z, boxSize, boxSize, 30, cardStyle);
-        
-        // Draw items inside box
-        slot.box.items.forEach((item, index) => {
-          const row = Math.floor(index / 2);
-          const col = index % 2;
-          const itemOffsetX = 10 + col * 20;
-          const itemOffsetY = 10 + row * 20;
-          const itemZ = slot.z + 2; // sit inside box
-          
-          drawItem3D(ctx, slot.x - boxSize/2 + itemOffsetX, slot.y - boxSize/2 + itemOffsetY, itemZ, item.type, 0.8, currentView, 1.0);
-        });
+        drawHollowBox(ctx, slot.x - boxSize/2, slot.y - boxSize/2, slot.z, boxSize, boxSize, 30, slot.box.items, slot.box.boxNo, currentView, 0);
       }
     });
     
