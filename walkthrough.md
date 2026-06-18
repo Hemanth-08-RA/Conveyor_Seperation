@@ -47,6 +47,11 @@ We have upgraded the simulation coordinates and animations to bring physical rea
 * **Aisle Pathing**: To prevent structural collisions, the AMR drives along a dedicated warehouse aisle at `y = 81` (clear of the rack structures and conveyor frames).
 * **Depositing Sequence**: The reach truck stops in front of the target rack slot, turns to face the rack (`angle = -Math.PI/2`), raises its lift mast if targeting the upper shelf, telescopes its forks forward to `y = 35` to deposit the box, lowers it onto the shelf surface, retracts the reach forks, lowers its empty forks back to travel height, and returns along the aisle.
 * **Lifting Sequence**: The AMR stops slightly back at `x = 850` to leave space for its forks, telescopes them out to `x = 784` directly under the box, raises the lift mast (which smoothly raises the box's Z coordinate in sync), retracts the reach forks, and carries the load safely.
+* **Standby Mode Visibility**: The AMR chassis, wheels, mast, and forks remain fully visible in standby mode at its parked staging position instead of disappearing when idle. In standby, the warning headlights, safety LIDAR sweep projections, and active flashing alarm lights are automatically turned off to conserve energy and match realistic warehouse guidelines.
+
+### 3. Bug Fix: AMR Forklift Pickup Stuck-State
+* **Issue**: When the simulation was scaled to high speed multipliers (e.g. 2x, 3x, 4x) or when the frame rate fluctuated, the step size `spd` exceeded the hardcoded `2px` margins in the state transitions. This caused the AMR to overshoot the target coordinates, leading to an infinite back-and-forth jittering oscillation (e.g., oscillating around `laneY` or `slot.x`), preventing it from ever docking, picking up, or depositing boxes.
+* **Resolution**: Replaced the hardcoded boundaries with dynamic step-based boundaries (`spd` thresholds) and added coordinate snapping. Once the AMR is within the step distance of a target coord (e.g., `x = 850`, `y = targetY`, `y = aisleY`, or `x = slot.x`), it snaps precisely to the target values before transitioning to the next state, preventing any possibility of numerical overshoot or stuck states.
 
 ---
 
